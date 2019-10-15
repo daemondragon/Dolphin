@@ -6,8 +6,6 @@ import pandas as pd
 URL = os.environ["JUMP_BASE_URL"]
 AUTH = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
 
-#URL = 'https://dolphin.jump-technology.com:8443/api/v1'
-#AUTH = ('EPITA_GROUPE3', 'dkw3JReNdZmZ6WV4')
 ids = sorted(pd.read_csv("assets.csv").dropna(subset=["value"])["id"].values.tolist())
 
 Rend = 13# Pearson correlation
