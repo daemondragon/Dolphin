@@ -14,11 +14,11 @@ auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
 # and only keep their id (they will be directly refered with that)
 ids = sorted(pd.read_csv("dataset/assets.csv").dropna(subset=["value"])["id"].values.tolist())
 
-ratio = 10
+ratio = 12
 
-with open("dataset/volatility.csv", "w", newline='') as file:
+with open("dataset/sharpe.csv", "w", newline='') as file:
     writer = csv.writer(file)
-    writer.writerow(["Id","volatility"])
+    writer.writerow(["id","sharpe"])
 
     reponse = requests.post(
         base_url + "/ratio/invoke",
