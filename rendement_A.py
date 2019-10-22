@@ -14,7 +14,7 @@ Rend = 9# Pearson correlation
 print("rendement_A.csv")
 with open("dataset/rendement_A.csv", "w", newline='') as file:
     writer = csv.writer(file)
-    writer.writerow(["source" , "rendement"])
+    writer.writerow(["id" , "rendement"])
 
     reponse = requests.post(
         URL + "/ratio/invoke",

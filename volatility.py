@@ -18,7 +18,7 @@ ratio = 10
 
 with open("dataset/volatility.csv", "w", newline='') as file:
     writer = csv.writer(file)
-    writer.writerow(["Id","volatility"])
+    writer.writerow(["id","volatility"])
 
     reponse = requests.post(
         base_url + "/ratio/invoke",
