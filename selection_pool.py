@@ -1,6 +1,7 @@
 import pandas as pd
 import csv
-
+from utils import load_assets
+from utils import pool_from_list
 
 
 """"
@@ -9,10 +10,7 @@ best assets sorted by sharpe with exactly stock_nb stocks
 """
 
 def get_pool( size_pool = 20, stock_nb= 5):
-    #get all the relevant data from CSVs files
-    assets_ = pd.read_csv("dataset/assets.csv")
-    sharpe_ = pd.read_csv("dataset/sharpe.csv")
-    assets = pd.merge(assets_, sharpe_, on="id",)
+    assets = load_assets()
     assets = assets[["id","type","sharpe"]]
 
     assets = assets.sort_values("sharpe", 0, ascending=False)
@@ -22,6 +20,5 @@ def get_pool( size_pool = 20, stock_nb= 5):
 
     pool= fund["id"].values.tolist() + stock["id"].values.tolist()
 
-    print(pool)
-    return pool
+    return pool_from_list(pool)
 

@@ -12,7 +12,7 @@ auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
 
 # Read all assets that have a value (all other are dropped)
 # and only keep their id (they will be directly refered with that)
-ids = sorted(pd.read_csv("dataset/assets.csv").dropna(subset=["value"])["id"].values.tolist())
+ids = sorted(pd.read_csv("dataset/assets.csv").dropna(subset=["id"])["id"].values.tolist())
 
 ratio = 10
 

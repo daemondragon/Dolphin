@@ -8,9 +8,9 @@ import numpy as np
 def load_assets_list(assets_path = "dataset/", files=None):
     if files is None:
         files = []
-    if os.path.isfile(assets_path + "assets.csv"):
+    if not os.path.isfile(assets_path + "assets.csv"):
         base_asssets.main()
-    assets = pd.read_csv(assets_path + "assets.csv")
+    assets = pd.read_csv(assets_path + "assets.csv").dropna(subset=["value"])
     for file in files:
         assets = pd.merge(assets, pd.read_csv(assets_path + file), on="id")
     return assets
@@ -18,12 +18,12 @@ def load_assets_list(assets_path = "dataset/", files=None):
 def load_assets_part(sharpe = False, volatility = False, rend = False):
     list = []
     if sharpe:
-        list += "sharpe.csv"
+        list.append("sharpe.csv")
     if volatility:
-        list += "volatility.csv"
+        list.append("volatility.csv")
     if rend:
-        list+= "rendement_A.csv"
-    return load_assets(files= list)
+        list.append("rendement_A.csv")
+    return load_assets_list(files= list)
 
 def load_assets(assets_path = "dataset/"):
     assets = load_assets_list(assets_path = assets_path, files = ["sharpe.csv","volatility.csv","rendement_A.csv"])
@@ -40,7 +40,9 @@ def id_to_index(id):
 # to be improved with a map
 def pool_from_list(list=[]):
     ids = sorted(pd.read_csv("dataset/assets.csv").dropna(subset=["value"])["id"].values.tolist())
-    res = [0]*ids.count()
+    res = []
+    for id in ids:
+        res.append(0)
     for el in list:
         res[id_to_index(el)] = 1
     return res
