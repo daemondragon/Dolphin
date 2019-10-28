@@ -3,6 +3,8 @@ import os.path
 import assets as base_asssets
 import numpy as np
 
+ids = sorted(pd.read_csv("dataset/volatility.csv")["id"].values.tolist())
+
 # return a dataframe with all the data specified in options
 # return the dataframe of the assets file merged with filename in options
 def load_assets_list(assets_path = "dataset/", files=None):
@@ -31,20 +33,19 @@ def load_assets(assets_path = "dataset/"):
 
 # take an id and return the index it should have in a assets pool
 def id_to_index(id):
-    ids = sorted(pd.read_csv("dataset/assets.csv").dropna(subset=["value"])["id"].values.tolist())
-    if id in ids:
-        return ids.index(id)
+    if int(id) in ids:
+        return ids.index(int(id))
     return -1
 
 # create the pool from a list of id
+# by default the value foreach asset is 0.2
 # to be improved with a map
 def pool_from_list(list=[]):
-    ids = sorted(pd.read_csv("dataset/assets.csv").dropna(subset=["value"])["id"].values.tolist())
     res = []
     for id in ids:
         res.append(0)
     for el in list:
-        res[id_to_index(el)] = 1
+        res[id_to_index(el)] = 0.2
     return res
 
 # not finished
@@ -56,6 +57,5 @@ def valid_pool(pool):
 
 # take an index and return the corresponding id in a pool
 def index_to_id(index):
-    ids = sorted(pd.read_csv("dataset/assets.csv").dropna(subset=["value"])["id"].values.tolist())
     return ids[index]
 
