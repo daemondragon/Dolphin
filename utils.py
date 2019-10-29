@@ -4,7 +4,7 @@ import assets as base_asssets
 import numpy as np
 import math
 
-def load_asset(assets_path = "dataset/"):
+def load_assets(assets_path = "dataset/"):
     assets = pd.read_csv(assets_path + "assets.csv").dropna(subset=["value"])
 
     # Add all other values to the assets
@@ -96,12 +96,12 @@ def sharpe(assets, portfolio):
     return Rp / math.sqrt(Vp_2)
 
 
-assets = load_asset()
+#assets = load_assets()
 #print(asset_id_to_index(assets, 2122))
 #print(index_to_asset_id(assets, 3))
 # Warning: Invalid portfolio, don't push it
-portfolio = portfolio_pool_from_id_list(assets, [1845,1846,2122,2123,2124,1428,1847,1848,1849,2154,1429,2063,1430,2064,1431,1858,1433])
+#portfolio = portfolio_pool_from_id_list(assets, [1845,1846,2122,2123,2124,1428,1847,1848,1849,2154,1429,2063,1430,2064,1431,1858,1433])
 #print(portfolio_pool_from_id_list(assets, [1, 2, 3]))
-print(portfolio)
-print(portfolio_is_valid(assets, portfolio))
-print(sharpe(assets, portfolio))
+#print(portfolio)
+#print(portfolio_is_valid(assets, portfolio))
+#print(sharpe(assets, portfolio))
