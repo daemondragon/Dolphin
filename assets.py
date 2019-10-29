@@ -13,10 +13,7 @@ def main():
     auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
 
     url = base_url + "/asset?" + "&".join(["columns={}".format(column) for column in ["ASSET_DATABASE_ID", "LABEL", "TYPE", "LAST_CLOSE_VALUE_IN_CURR"]]) + "&date=2013-06-14"
-
-    print(url)
     content = requests.get(url, auth=auth).json()
-
 
     with open("dataset/assets.csv", "w") as file:
         writer = csv.writer(file)
