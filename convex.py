@@ -6,14 +6,11 @@ def convex_pool(assets,
                 steps=0.005,
                 max_weight=0.1,
                 asset_ratio=0.5):
+    # The used portfolio in the function is always as a ratio of the liquidity (weights * values)
 
-    # Normalized value (it's the sum of the X top stocks by value)
-    # It will be used to normalize the portfolio to makes sure that stocks values are always = 0.5
-    # as the funds are more profitable than stocks.
-    normalized_value = np.flip(np.sort(
-        assets["info"].iloc[np.where(assets["info"]["type"] == "STOCK")[0]]["value"].values
-    ))[:10].sum() / 10
-
+    def valued_sharpe(portfolio):
+        weighted_portfolio = portfolio / assets["info"]["value"]
+        return utils.sharpe(assets, weighted_portfolio / weighted_portfolio.sum())
 
     def normalize(portfolio):
         # Hard limit on the number of times to normalize to prevent
@@ -24,19 +21,31 @@ def convex_pool(assets,
                 ("STOCK", asset_ratio),
                 ("FUND", 1 - asset_ratio),
             ]:
-                correct_assets_index = np.where(assets["info"]["type"] == kind)[0]
-
                 portfolio = np.clip(portfolio, 0, max_weight)
-                values = portfolio * assets["info"]["value"]
-                sum_kind_values = values[correct_assets_index].sum()
 
-                if sum_kind_values != 0:
-                    # Need to normalize
-                    # https://stackoverflow.com/questions/18661112/normalize-a-vector-with-one-fixed-value/
-                    portfolio[correct_assets_index] *= (ratio * normalized_value) / sum_kind_values
+                correct_assets_index = np.where(assets["info"]["type"] == kind)[0]
+                under_index = np.intersect1d(
+                    correct_assets_index,
+                    np.argwhere(portfolio < max_weight),
+                    assume_unique=True
+                )
+                full_index = np.setdiff1d(
+                    correct_assets_index,
+                    under_index,
+                    assume_unique=True
+                )
 
-            # Completly normalize the portfolio
-            portfolio *= 1 / portfolio.sum()
+                kind_sum = portfolio[correct_assets_index].sum()
+                under_sum = portfolio[under_index].sum()
+                full_sum = portfolio[full_index].sum()
+
+                # https://stackoverflow.com/questions/18661112/normalize-a-vector-with-one-fixed-value/
+                if kind_sum < ratio:
+                    # Not enough weight, they will be increasing, so need to prevent 10% from overflowing
+                    portfolio[under_index] *= (ratio - full_sum) / under_sum
+                else:
+                    # Decreasing weight, normalize all the current assets kind
+                    portfolio[correct_assets_index] *= ratio / kind_sum
 
             if len(np.argwhere(portfolio[correct_assets_index] > max_weight)) == 0:
                 break# Nothing more to normalize
@@ -48,8 +57,8 @@ def convex_pool(assets,
         derivate_portfolio = np.zeros(portfolio.shape)
         for i in range(len(derivate_portfolio)):
             derivate_portfolio[i] = (# Centered derivate
-                utils.sharpe(assets, normalize(portfolio + np.identity(len(derivate_portfolio))[i] * steps)) -
-                utils.sharpe(assets, normalize(portfolio - np.identity(len(derivate_portfolio))[i] * steps))
+                valued_sharpe(normalize(portfolio + np.identity(len(derivate_portfolio))[i] * steps)) -
+                valued_sharpe(normalize(portfolio - np.identity(len(derivate_portfolio))[i] * steps))
             ) / (2 * steps)
 
         return derivate_portfolio
@@ -59,36 +68,26 @@ def convex_pool(assets,
     portfolio = normalize(np.full((n,), 1 / n))
 
     # Early stopping if needed
-    previous_sharpe = utils.sharpe(assets, portfolio)
+    previous_sharpe = valued_sharpe(portfolio)
     # Keep the best portfolio currently computed
     top_portfolio = portfolio
 
     for i in range(nb_iters):
-        print("iter: {}, sharpe: {}".format(i, utils.sharpe(assets, portfolio)))
+        print("iter: {}, sharpe: {}".format(i, previous_sharpe))
         portfolio = normalize(portfolio + derivate(portfolio))
 
-        current_sharpe = utils.sharpe(assets, portfolio)
+        current_sharpe = valued_sharpe(portfolio)
         if previous_sharpe == current_sharpe:
             # No more thing to optmize
             break
-        elif current_sharpe > utils.sharpe(assets, top_portfolio):
+        elif current_sharpe > valued_sharpe(top_portfolio):
             # Keep the best portfolio
             top_portfolio = portfolio
         previous_sharpe = current_sharpe
 
-    print(portfolio)
-    print(np.flip(np.argsort(portfolio)))
-    print(utils.sharpe(assets, top_portfolio))
-    print(portfolio.sum())
-
-    return np.flip(np.argsort(top_portfolio))
+    # All the index by importance, and the created portfolio if a base point is needed.
+    return (sorted_index, top_portfolio)
 
 assets = utils.load_assets()
-
-# sharpe: 3.4498933014250976
-# [0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.02040816,0.,0.,0.02040816,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.02040816,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.02040816,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.02040816,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.02040816,0.02040816,0.,0.,0.,0.02040816,0.,0.,0.02040816,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.02040816,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.,0.,0.,0.02040816,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.02040816,0.02040816,0.,0.02040816,0.,0.02040816,0.,0.,0.,0.02040816,0.]
-
-# shape: 3.506572563946808
-# [1.42228427e-02,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,1.42228427e-02,,1.42228427e-02,0.,0.,8.15240906e-03,,8.15240906e-03,1.42228427e-02,0.,8.15240906e-03,,8.15240906e-03,0.,5.47368087e-05,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,8.15240906e-03,8.15240906e-03,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,8.15240906e-03,,8.15240906e-03,8.15240906e-03,1.42228427e-02,0.,,0.,0.,0.,1.42228427e-02,,0.,1.41287520e-02,0.,8.15240906e-03,,0.,0.,0.,0.,,4.68349194e-04,0.,0.,0.,,8.15240906e-03,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,1.42228427e-02,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,1.42228427e-02,0.,0.,,1.42228427e-02,0.,0.,0.,,8.15240906e-03,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,8.15240906e-03,0.,,0.,0.,0.,0.,,0.,8.15240906e-03,8.15240906e-03,0.,,1.42228427e-02,0.,0.,0.,,0.,0.,0.,0.,,8.15240906e-03,0.,0.,0.,,1.42228427e-02,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,5.06161504e-03,0.,0.,,0.,2.30095681e-03,0.,0.,,0.,1.42228427e-02,0.,0.,,8.15240906e-03,0.,0.,8.15240906e-03,,8.15240906e-03,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,8.15240906e-03,0.,,8.15240906e-03,8.15240906e-03,0.,0.,,0.,8.15240906e-03,0.,0.,,8.15240906e-03,0.,0.,8.15240906e-03,,1.42228427e-02,0.,0.,0.,,0.,1.42228427e-02,0.,0.,,0.,0.,0.,1.42228427e-02,,1.42228427e-02,0.,0.,0.,,0.,0.,4.68349194e-04,0.,,0.,1.42228427e-02,0.,0.,,1.42228427e-02,1.42228427e-02,0.,0.,,1.42228427e-02,0.,0.,0.,,0.,0.,0.,1.42228427e-02,,0.,1.42228427e-02,0.,0.,,0.,0.,8.15240906e-03,0.,,1.42228427e-02,1.42228427e-02,0.,0.,,1.42228427e-02,0.,0.,0.,,8.15240906e-03,1.42228427e-02,8.15240906e-03,0.,,0.,0.,0.,0.,,8.15240906e-03,8.15240906e-03,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,8.15240906e-03,0.,0.,0.,,8.15240906e-03,0.,0.,0.,,0.,0.,0.,0.,,1.42228427e-02,0.,1.42228427e-02,0.,,1.42228427e-02,0.,0.,0.,,0.,0.,1.42228427e-02,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,7.77698510e-03,1.69947851e-03,,0.,0.,0.,0.,,8.15240906e-03,1.42228427e-02,0.,0.,,0.,0.,0.,0.,,0.,0.,5.98753094e-03,0.,,0.,0.,6.22200016e-03,0.,,0.,1.42228427e-02,0.,0.,,0.,0.,0.,0.,,1.42228427e-02,1.42228427e-02,0.,0.,,0.,8.15240906e-03,0.,1.42228427e-02,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,5.18803431e-03,0.,0.,,0.,0.,0.,1.42228427e-02,,1.42228427e-02,0.,0.,0.,,0.,8.15240906e-03,0.,0.,,0.,0.,0.,0.,,0.,0.,4.68349194e-04,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,1.42228427e-02,0.,0.,,0.,8.15240906e-03,0.,0.,,0.,0.,0.,0.,,0.,0.,1.42228427e-02,8.15240906e-03,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,8.15240906e-03,0.,6.68124862e-07,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,1.42228427e-02,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,1.79237788e-04,0.,,8.15240906e-03,0.,0.,0.,,8.15240906e-03,0.,0.,1.42228427e-02,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,0.,,0.,0.,0.,8.15240906e-03,,8.15240906e-03,0.,8.15240906e-03,0.,,8.15240906e-03,0.,0.,0.,,8.15240906e-03,0.]
 
 convex_pool(assets, nb_iters=10, asset_ratio=0.5)

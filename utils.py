@@ -73,7 +73,7 @@ def portfolio_is_valid(assets, portfolio):
         np.all(
             np.vectorize(
                 lambda value: value == 0.0 or (0.01 <= value and value <= 0.1)
-            )(portfolio)
+            )(assets_values / assets_values.sum())
         ),
 
         # Correct number of assets
@@ -96,10 +96,10 @@ def sharpe(assets, portfolio):
 
     # If the i == j case must not be included in the volatility computation,
     # decomment the end of the next lign.
-    mask = np.ones((len(portfolio), len(portfolio)))#1 - np.identity(len(portfolio))
+    mask = np.ones((len(normalized_portfolio), len(normalized_portfolio)))#1 - np.identity(len(normalized_portfolio))
 
     # stack the portofolio weight n times to easily compute the sharpe ratio
-    W = np.repeat(portfolio[:,np.newaxis], len(portfolio), axis=1)
+    W = np.repeat(normalized_portfolio[:,np.newaxis], len(normalized_portfolio), axis=1)
     Vp_2 = (W * W.T * assets["covariance"] * mask).sum()# Compute everything at once
     return Rp / math.sqrt(Vp_2)
 
