@@ -23,8 +23,8 @@ with open("dataset/rendement_A.csv", "w", newline='') as file:
             ratio=[{}],
             asset={},
             benchmark={},
-            startDate=2013-06-14,
-            endDate=2019-05-31,
+            start_date=2013-06-14,
+            end_date=2019-05-31,
             frequency=null
         }}""".format(Rend, ids,  ids[0]))
 

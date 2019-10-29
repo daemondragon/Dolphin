@@ -16,11 +16,6 @@ with open("Rendement.csv", "w") as file:
     writer.writerow(["source"] + [str(_id) for _id in ids])
 
     for current in ids:
-        payload={'_ratio':[Rend],'_asset':[current],'_becnh':"null",
-                 '_startDate':"2013-06-14",
-                 '_endDate':"2019-05-31",
-                 '_frequency':"null"}
-
         reponse = requests.post(
             URL + "/ratio/invoke",
             auth=AUTH,
@@ -28,8 +23,8 @@ with open("Rendement.csv", "w") as file:
                 ratio=[{}],
                 asset={},
                 benchmark={},
-                startDate=2013-06-14,
-                endDate=2019-05-31,
+                start_date=2013-06-14,
+                end_date=2019-05-31,
                 frequency=null
             }}""".format(Rend, ids, current))
 
