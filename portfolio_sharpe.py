@@ -24,4 +24,9 @@ for portfolio_id in [1822]:
     for asset in content["values"]["2013-06-14"]:
         portfolio[utils.asset_id_to_index(assets, asset["asset"]["asset"])] = asset["asset"]["quantity"]
 
-    print("{}: {}".format(content["label"], utils.sharpe(assets, portfolio)))
+    print("{}: {} (is_valid: {})".format(
+        content["label"],
+        utils.sharpe(assets, portfolio),
+        utils.portfolio_is_valid(assets, portfolio)
+
+    ))

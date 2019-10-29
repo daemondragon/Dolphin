@@ -68,15 +68,23 @@ def portfolio_is_valid(assets, portfolio):
     assets_values = portfolio * assets["info"]["value"]
     stocks_index = np.where(assets["info"]["type"] == "STOCK")[0]
 
-    return np.all(# Correct ratio range
-        np.vectorize(
-            lambda value: value == 0.0 or (0.01 <= value and value <= 0.1)
-        )(portfolio)
-    ) and (# Correct number of assets
-        15 <= np.count_nonzero(portfolio) and np.count_nonzero(portfolio) <= 40
-    ) and (# Enough ratio of stocks (in value)
+    correct = [
+        # Correct ratio range
+        np.all(
+            np.vectorize(
+                lambda value: value == 0.0 or (0.01 <= value and value <= 0.1)
+            )(portfolio)
+        ),
+
+        # Correct number of assets
+        15 <= np.count_nonzero(portfolio) and np.count_nonzero(portfolio) <= 40,
+
+        # Enough ratio of stocks (in value)
         assets_values[stocks_index].sum() / assets_values.sum() >= 0.5
-    )
+    ]
+
+    #print(correct)
+    return all(correct)
 
 def sharpe(assets, portfolio):
     # So that unit instead of ratio can be passed if wanted
