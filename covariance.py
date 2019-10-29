@@ -8,4 +8,4 @@ covariance = data.copy()
 covariance[id_list] = covariance[id_list].apply(lambda x: x * volatility["volatility"], axis=0)
 covariance[id_list] = covariance[id_list].apply(lambda x: x * volatility["volatility"].values, axis=1)
 
-covariance.to_csv("dataset/covariance.csv")
+covariance.to_csv("dataset/covariance.csv", index=False)
