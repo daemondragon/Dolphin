@@ -20,14 +20,20 @@ def invoke_ratio(asset_id):
             frequency=null
         }}""".format(asset_id)).json()
 
-    return [
-        "{}: {}".format(
-            { "9":"rendement", "10":"volatility","12":"sharpe" }[ratio_id],
+    ratios = [
+        {
+            { "9":"rendement", "10":"volatility","12":"sharpe" }[ratio_id]:
             {"double": lambda x: x, "percent": lambda x: x / 100 }[
                 response[str(asset_id)][ratio_id]["type"]
             ](float(response[str(asset_id)][ratio_id]["value"].replace(",", ".")))
-        ) for ratio_id in response[str(asset_id)]
+        } for ratio_id in response[str(asset_id)]
     ]
+
+    # Compute the rf as the subject give the wrong one.
+    ratios = {key: val for dic in ratios for key, val in dic.items()}
+    ratios["rf"] = ratios["rendement"] - ratios["volatility"] * ratios["sharpe"]
+
+    return ratios
 
 assets = utils.load_assets()
 
@@ -51,5 +57,4 @@ for portfolio_id in [1822]:
     ))
 
     utils.quantity_describe(assets, portfolio)
-
-    utils.push_portfolio(assets, portfolio)
+    #utils.push_portfolio(assets, portfolio)

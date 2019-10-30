@@ -99,7 +99,7 @@ def value_sharpe(assets, portfolio):
     # So that unit instead of ratio can be passed if wanted
     normalized_portfolio = portfolio / portfolio.sum()
 
-    no_risk = 0.0005# 0.05% (source Fiche Technique)
+    no_risk = 0.00005# 0.005% (Fiche Technique donne 0.05%, mais le sharpe est alors faux)
 
     Rp = (normalized_portfolio * assets["info"]["rendement"]).sum() - no_risk
 
@@ -112,9 +112,7 @@ def value_sharpe(assets, portfolio):
     W = np.repeat(normalized_portfolio[:,np.newaxis], len(normalized_portfolio), axis=1)
     Vp_2 = (W * W.T * assets["covariance"] * mask).sum()# Compute everything at once
 
-    #print((normalized_portfolio * assets["info"]["rendement"]).sum())
-    #print(Vp_2, math.sqrt(Vp_2), (W * W.T).sum())
-    #print(Rp, (normalized_portfolio * assets["info"]["rendement"]).sum(), math.sqrt(Vp_2), Vp_2)
+    print((normalized_portfolio * assets["info"]["rendement"]).sum(), math.sqrt(Vp_2))
     return Rp / math.sqrt(Vp_2)
 
 def push_portfolio(assets, portfolio):
