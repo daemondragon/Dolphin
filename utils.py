@@ -1,8 +1,8 @@
 import pandas as pd
-import os.path
-import assets as base_asssets
 import numpy as np
+import requests
 import math
+import os
 
 def load_assets(assets_path = "dataset/"):
     assets = pd.read_csv(assets_path + "assets.csv").dropna(subset=["value"])
@@ -83,10 +83,19 @@ def portfolio_is_valid(assets, portfolio):
         assets_values[stocks_index].sum() / assets_values.sum() >= 0.5
     ]
 
-    #print(correct)
+    print(correct)
     return all(correct)
 
-def sharpe(assets, portfolio):
+
+def quantity_sharpe(assets, portfolio):
+    """
+    Compute the sharpe coefficient of a portfolio
+    where each value in the array represent the quantity of assets
+    """
+    return value_sharpe(assets, portfolio * assets["info"]["value"])
+
+
+def value_sharpe(assets, portfolio):
     # So that unit instead of ratio can be passed if wanted
     normalized_portfolio = portfolio / portfolio.sum()
 
@@ -96,20 +105,79 @@ def sharpe(assets, portfolio):
 
     # If the i == j case must not be included in the volatility computation,
     # decomment the end of the next lign.
-    mask = np.ones((len(normalized_portfolio), len(normalized_portfolio)))#1 - np.identity(len(normalized_portfolio))
+    mask = np.ones((len(normalized_portfolio), len(normalized_portfolio)))
+    #mask = 1 - np.identity(len(normalized_portfolio))
 
-    # stack the portofolio weight n times to easily compute the sharpe ratio
+    # stack the portfolio weight n times to easily compute the sharpe ratio
     W = np.repeat(normalized_portfolio[:,np.newaxis], len(normalized_portfolio), axis=1)
     Vp_2 = (W * W.T * assets["covariance"] * mask).sum()# Compute everything at once
+
+    #print((normalized_portfolio * assets["info"]["rendement"]).sum())
+    #print(Vp_2, math.sqrt(Vp_2), (W * W.T).sum())
+    #print(Rp, (normalized_portfolio * assets["info"]["rendement"]).sum(), math.sqrt(Vp_2), Vp_2)
     return Rp / math.sqrt(Vp_2)
 
+def push_portfolio(assets, portfolio):
+    base_url = os.environ["JUMP_BASE_URL"]
+    auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
 
-#assets = load_assets()
-#print(asset_id_to_index(assets, 2122))
-#print(index_to_asset_id(assets, 3))
-# Warning: Invalid portfolio, don't push it
-#portfolio = portfolio_pool_from_id_list(assets, [1845,1846,2122,2123,2124,1428,1847,1848,1849,2154,1429,2063,1430,2064,1431,1858,1433])
-#print(portfolio_pool_from_id_list(assets, [1, 2, 3]))
-#print(portfolio)
-#print(portfolio_is_valid(assets, portfolio))
-#print(sharpe(assets, portfolio))
+    portfolio_id = 1822
+    portfolio_label = "EPITA_PTF_3"
+
+    url = base_url + "/portfolio/{}/dyn_amount_compo".format(portfolio_id)
+    entity="""{{
+        "label":"EPITA_PTF_3",
+        "currency":{{"code":"EUR"}},
+        "type":"front",
+        "values":{{ "2013-06-14": [{}] }}
+    }}""".format(",".join([
+        """{{
+            "asset": {{
+                "asset":{},
+                "quantity":{}
+            }}
+        }}""".format(
+            index_to_asset_id(assets, index)[0],
+            portfolio[index][0]
+        ) for index in np.argwhere(portfolio)
+    ]))
+
+    response = requests.put(url, auth=auth, data=entity)
+    print(response)
+
+
+def quantity_describe(assets, portfolio):
+    return value_describe(assets, portfolio * assets["info"]["value"].values)
+
+def value_describe(assets, portfolio):
+    """
+    print information about the portfolio in a lisible way for the user.
+    """
+
+    def nice_name(name, amount):
+        if len(name) <= amount:
+            return name + (" " * (amount - len(name)))
+        else:
+            return name[:amount - 3] + "..."
+
+    for kind in ["STOCK", "FUND"]:
+        important_index = np.where(assets["info"]["type"] == kind)[0]
+        important_index = np.intersect1d(
+            important_index,
+            np.nonzero(portfolio)[0],
+            assume_unique=True
+        )
+        important_index = important_index[np.argsort(portfolio[important_index])]
+
+        print("\nASSET: {} ({})".format(kind, len(important_index)))
+
+        for index in important_index:
+            final_value = portfolio[index]
+            value = assets["info"]["value"][index]
+            quantity = final_value / value
+
+            print("- {} {} quantity {} * value {} = {}".format(
+                assets["info"]["id"][index],
+                nice_name(assets["info"]["name"][index], 20),
+                quantity, value, final_value
+            ))

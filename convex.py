@@ -5,12 +5,9 @@ def convex_pool(assets,
                 nb_iters=100,
                 steps=0.005,
                 max_weight=0.1,
-                asset_ratio=0.5):
+                asset_ratio=0.5,
+                learning_rate=0.1):
     # The used portfolio in the function is always as a ratio of the liquidity (weights * values)
-
-    def valued_sharpe(portfolio):
-        weighted_portfolio = portfolio / assets["info"]["value"]
-        return utils.sharpe(assets, weighted_portfolio / weighted_portfolio.sum())
 
     def normalize(portfolio):
         # Hard limit on the number of times to normalize to prevent
@@ -47,6 +44,10 @@ def convex_pool(assets,
                     # Decreasing weight, normalize all the current assets kind
                     portfolio[correct_assets_index] *= ratio / kind_sum
 
+            # Normalize everything to be
+            portfolio = np.clip(portfolio, 0, max_weight)
+            portfolio /= portfolio.sum()
+
             if len(np.argwhere(portfolio[correct_assets_index] > max_weight)) == 0:
                 break# Nothing more to normalize
 
@@ -57,8 +58,8 @@ def convex_pool(assets,
         derivate_portfolio = np.zeros(portfolio.shape)
         for i in range(len(derivate_portfolio)):
             derivate_portfolio[i] = (# Centered derivate
-                valued_sharpe(normalize(portfolio + np.identity(len(derivate_portfolio))[i] * steps)) -
-                valued_sharpe(normalize(portfolio - np.identity(len(derivate_portfolio))[i] * steps))
+                utils.value_sharpe(assets, normalize(portfolio + np.identity(len(derivate_portfolio))[i] * steps)) -
+                utils.value_sharpe(assets, normalize(portfolio - np.identity(len(derivate_portfolio))[i] * steps))
             ) / (2 * steps)
 
         return derivate_portfolio
@@ -68,26 +69,47 @@ def convex_pool(assets,
     portfolio = normalize(np.full((n,), 1 / n))
 
     # Early stopping if needed
-    previous_sharpe = valued_sharpe(portfolio)
+    previous_sharpe = utils.value_sharpe(assets, portfolio)
     # Keep the best portfolio currently computed
     top_portfolio = portfolio
 
     for i in range(nb_iters):
         print("iter: {}, sharpe: {}".format(i, previous_sharpe))
-        portfolio = normalize(portfolio + derivate(portfolio))
+        portfolio = normalize(portfolio + learning_rate * derivate(portfolio))
 
-        current_sharpe = valued_sharpe(portfolio)
+        #print(portfolio)
+
+        current_sharpe = utils.value_sharpe(assets, portfolio)
         if previous_sharpe == current_sharpe:
             # No more thing to optmize
             break
-        elif current_sharpe > valued_sharpe(top_portfolio):
+        elif current_sharpe > utils.value_sharpe(assets, top_portfolio):
             # Keep the best portfolio
             top_portfolio = portfolio
         previous_sharpe = current_sharpe
 
+    # Must be before the top_portfolio change
+    sorted_index = np.flip(np.argsort(top_portfolio))
+
+    mask = np.ones(top_portfolio.shape, dtype=bool)
+    mask[sorted_index[:35]] = False
+    top_portfolio[mask] = 0.0
+
+    top_portfolio = normalize(top_portfolio) / assets["info"]["value"]
+    top_portfolio /= top_portfolio.sum()
+
     # All the index by importance, and the created portfolio if a base point is needed.
-    return (sorted_index, top_portfolio)
+    return (sorted_index, top_portfolio.values)
 
 assets = utils.load_assets()
 
-convex_pool(assets, nb_iters=10, asset_ratio=0.5)
+index, portfolio = convex_pool(assets, nb_iters=10, asset_ratio=0.52, learning_rate=1)
+
+portfolio = (portfolio / portfolio.sum()) * 10000
+print(index, portfolio)
+print(np.sort(portfolio))
+print(utils.portfolio_is_valid(assets, portfolio))
+print(utils.quantity_sharpe(assets, portfolio))
+print(np.count_nonzero(portfolio))
+
+utils.push_portfolio(assets, portfolio)

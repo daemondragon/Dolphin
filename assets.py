@@ -3,7 +3,6 @@ import csv
 import os
 
 
-
 def correct_float(value):
     return value.replace(",", ".")
 
@@ -19,7 +18,7 @@ def main():
         writer = csv.writer(file)
         writer.writerow(["id", "name", "type", "value", "currency"])
 
-        for asset in content:
+        for asset in sorted(content, key=lambda asset: asset["ASSET_DATABASE_ID"]["value"]):
 
             value, currency = "", ""
             if "LAST_CLOSE_VALUE_IN_CURR" in asset:
