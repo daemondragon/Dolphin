@@ -61,11 +61,12 @@ def portfolio_pool_from_id_list(assets, assets_id_list):
 
     return portfolio
 
-def portfolio_is_valid(assets, portfolio):
+def quantity_portfolio_is_valid(assets, portfolio):
+    return value_portfolio_is_valid(assets, portfolio * assets["info"]["value"])
+
+def value_portfolio_is_valid(assets, portfolio):
     # So that unit instead of ratio can be passed if wanted
     normalized_portfolio = portfolio / portfolio.sum()
-
-    assets_values = portfolio * assets["info"]["value"]
     stocks_index = np.where(assets["info"]["type"] == "STOCK")[0]
 
     correct = [
@@ -73,14 +74,14 @@ def portfolio_is_valid(assets, portfolio):
         np.all(
             np.vectorize(
                 lambda value: value == 0.0 or (0.01 <= value and value <= 0.1)
-            )(assets_values / assets_values.sum())
+            )(normalized_portfolio)
         ),
 
         # Correct number of assets
-        15 <= np.count_nonzero(portfolio) and np.count_nonzero(portfolio) <= 40,
+        15 <= np.count_nonzero(normalized_portfolio) and np.count_nonzero(normalized_portfolio) <= 40,
 
         # Enough ratio of stocks (in value)
-        assets_values[stocks_index].sum() / assets_values.sum() >= 0.5
+        normalized_portfolio[stocks_index].sum() / normalized_portfolio.sum() >= 0.5
     ]
 
     print(correct)
@@ -112,10 +113,13 @@ def value_sharpe(assets, portfolio):
     W = np.repeat(normalized_portfolio[:,np.newaxis], len(normalized_portfolio), axis=1)
     Vp_2 = (W * W.T * assets["covariance"] * mask).sum()# Compute everything at once
 
-    print((normalized_portfolio * assets["info"]["rendement"]).sum(), math.sqrt(Vp_2))
+    #print((normalized_portfolio * assets["info"]["rendement"]).sum(), math.sqrt(Vp_2))
     return Rp / math.sqrt(Vp_2)
 
 def push_portfolio(assets, portfolio):
+    """
+    Expect a quantity portfolio, not a valued one.
+    """
     base_url = os.environ["JUMP_BASE_URL"]
     auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
 
@@ -165,7 +169,7 @@ def value_describe(assets, portfolio):
             np.nonzero(portfolio)[0],
             assume_unique=True
         )
-        important_index = important_index[np.argsort(portfolio[important_index])]
+        important_index = np.flip(important_index[np.argsort(portfolio[important_index])])
 
         print("\nASSET: {} ({})".format(kind, len(important_index)))
 

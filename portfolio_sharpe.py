@@ -52,7 +52,7 @@ for portfolio_id in [1822]:
     print("{}: {} (is_valid: {}) (server value: {})".format(
         content["label"],
         utils.quantity_sharpe(assets, portfolio),
-        utils.portfolio_is_valid(assets, portfolio),
+        utils.quantity_portfolio_is_valid(assets, portfolio),
         invoke_ratio(portfolio_id)
     ))
 

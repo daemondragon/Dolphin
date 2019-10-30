@@ -20,21 +20,21 @@ def main():
 
         for asset in sorted(content, key=lambda asset: asset["ASSET_DATABASE_ID"]["value"]):
 
-            value, currency = "", ""
-            if "LAST_CLOSE_VALUE_IN_CURR" in asset:
+            # Remove asset that can't be used in the portfolio
+            if "LAST_CLOSE_VALUE_IN_CURR" in asset and asset["TYPE"]["value"] in ["STOCK", "FUND"]:
                 # Sometimes the value is not here.
                 str_value = asset["LAST_CLOSE_VALUE_IN_CURR"]["value"].split(" ")
 
                 value = correct_float(str_value[0])
                 currency = str_value[1]
 
-            writer.writerow([
-                asset["ASSET_DATABASE_ID"]["value"],
-                asset["LABEL"]["value"],
-                asset["TYPE"]["value"],
-                value,
-                currency
-            ])
+                writer.writerow([
+                    asset["ASSET_DATABASE_ID"]["value"],
+                    asset["LABEL"]["value"],
+                    asset["TYPE"]["value"],
+                    correct_float(str_value[0]),
+                    str_value[1]
+                ])
 if __name__ == '__main__':
     main()
     print("done")
