@@ -104,14 +104,9 @@ def value_sharpe(assets, portfolio):
 
     Rp = (normalized_portfolio * assets["info"]["rendement"]).sum() - no_risk
 
-    # If the i == j case must not be included in the volatility computation,
-    # decomment the end of the next lign.
-    mask = np.ones((len(normalized_portfolio), len(normalized_portfolio)))
-    #mask = 1 - np.identity(len(normalized_portfolio))
-
     # stack the portfolio weight n times to easily compute the sharpe ratio
     W = np.repeat(normalized_portfolio[:,np.newaxis], len(normalized_portfolio), axis=1)
-    Vp_2 = (W * W.T * assets["covariance"] * mask).sum()# Compute everything at once
+    Vp_2 = (W * W.T * assets["covariance"]).sum()# Compute everything at once
 
     #print((normalized_portfolio * assets["info"]["rendement"]).sum(), math.sqrt(Vp_2))
     return Rp / math.sqrt(Vp_2)
@@ -147,7 +142,9 @@ def push_quantity_portfolio(assets, portfolio):
         ) for index in np.argwhere(portfolio)
     ]))
 
-    response = requests.put(url, auth=auth, data=entity)
+    for _ in range(2):
+        # Need to be pushed twice to update the ratio computation
+        response = requests.put(url, auth=auth, data=entity)
     print(response)
 
 
