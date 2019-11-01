@@ -8,7 +8,12 @@ def load_assets(assets_path = "dataset/"):
     assets = pd.read_csv(assets_path + "assets.csv").dropna(subset=["value"])
 
     # Add all other values to the assets
-    for file in ["sharpe.csv", "volatility.csv", "rendement_A.csv"]:
+    for file in [
+        "sharpe.csv",
+        "volatility.csv", "volatility_percent.csv",
+        "rendement.csv", "rendement_percent.csv",
+        "rendement_A.csv", "rendement_A_percent.csv"
+    ]:
         assets = pd.merge(assets, pd.read_csv(assets_path + file), on="id")
 
     # Convert all values to EUR
@@ -16,12 +21,12 @@ def load_assets(assets_path = "dataset/"):
     assets["value"] = assets.apply(lambda row: float(rate[rate["source"] == row["currency"]]["rate"] * row["value"]), axis=1)
     assets = assets.drop(columns="currency")# Remove this columns as it is useless now
 
-    covariance = pd.read_csv(assets_path + "covariance.csv").drop(columns="source").values
+    result = { "info": assets }
 
-    return {
-        "info": assets,
-        "covariance": covariance
-    }
+    for name in ["covariance", "covariance_percent"]:
+        result[name] = pd.read_csv("{}{}.csv".format(assets_path, name)).drop(columns="source").values
+
+    return result
 
 def asset_id_to_index(assets, asset_id):
     return np.where(assets["info"]["id"] == asset_id)[0][0]
@@ -36,8 +41,8 @@ def portfolio_pool_from_id_list(assets, assets_id_list):
     portfolio[assets_index_list] = 0.01 # 1%
 
     # sort the STOCK first, and the FUND after.
-    # The stocks are ordered by decreasing rendement
-    # The fund are ordered by increasing rendement
+    # The stocks are ordered by decreasing value
+    # The fund are ordered by increasing value
     # Max to 10% in the list ordered while 100% are not yet reached.
     # Doing it in this order allows to makes sure that the %NAV contraints are respected,
     # while maximising the chance that at least 50% of portfolio values are in STOCK
@@ -97,19 +102,25 @@ def quantity_sharpe(assets, portfolio):
 
 
 def value_sharpe(assets, portfolio):
+    """
+    Compute the sharpe coefficient of a portfolio
+    where each value in the array represent the quantity of assets
+    """
+
     # So that unit instead of ratio can be passed if wanted
     normalized_portfolio = portfolio / portfolio.sum()
 
-    no_risk = 0.00005# 0.005% (Fiche Technique donne 0.05%, mais le sharpe est alors faux)
+    no_risk = 0.00005# 0.005% (Fiche Technique say 0.05%, but the sharpe becone wrong)
 
-    Rp = (normalized_portfolio * assets["info"]["rendement"]).sum() - no_risk
+    Rp = (normalized_portfolio * assets["info"]["rendement_A"]).sum() - no_risk
 
     # stack the portfolio weight n times to easily compute the sharpe ratio
     W = np.repeat(normalized_portfolio[:,np.newaxis], len(normalized_portfolio), axis=1)
     Vp_2 = (W * W.T * assets["covariance"]).sum()# Compute everything at once
+    Vp = math.sqrt(Vp_2)
 
-    #print((normalized_portfolio * assets["info"]["rendement"]).sum(), math.sqrt(Vp_2))
-    return Rp / math.sqrt(Vp_2)
+    #print(Rp + no_risk, Vp)
+    return Rp / Vp
 
 def push_value_portfolio(assets, portfolio):
     return push_quantity_portfolio(assets, portfolio / assets["info"]["value"].values)
@@ -145,8 +156,8 @@ def push_quantity_portfolio(assets, portfolio):
     for _ in range(2):
         # Need to be pushed twice to update the ratio computation
         response = requests.put(url, auth=auth, data=entity)
-    print(response)
 
+    return (response.status_code / 100) == 2 # 200-like response code
 
 def quantity_describe(assets, portfolio):
     return value_describe(assets, portfolio * assets["info"]["value"].values)

@@ -57,4 +57,3 @@ for portfolio_id in [1822]:
     ))
 
     utils.quantity_describe(assets, portfolio)
-    #utils.push_portfolio(assets, portfolio)
