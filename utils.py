@@ -116,7 +116,10 @@ def value_sharpe(assets, portfolio):
     #print((normalized_portfolio * assets["info"]["rendement"]).sum(), math.sqrt(Vp_2))
     return Rp / math.sqrt(Vp_2)
 
-def push_portfolio(assets, portfolio):
+def push_value_portfolio(assets, portfolio):
+    return push_quantity_portfolio(assets, portfolio / assets["info"]["value"].values)
+
+def push_quantity_portfolio(assets, portfolio):
     """
     Expect a quantity portfolio, not a valued one.
     """
