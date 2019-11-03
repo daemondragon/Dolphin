@@ -20,8 +20,12 @@ def convex_pool(assets,
                 ("FUND", 1 - stock_ratio),
             ]:
                 portfolio = np.clip(portfolio, 0, max_weight)
-
                 correct_assets_index = np.where(assets["info"]["type"] == kind)[0]
+
+                if ratio == 0.0:
+                    portfolio[correct_assets_index] = 0.0
+                    continue
+
                 under_index = np.intersect1d(
                     correct_assets_index,
                     np.argwhere(portfolio < max_weight),
@@ -128,15 +132,16 @@ def convex_pool(assets,
 
 assets = utils.load_assets()
 
+#for ratio in [0.52, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.0]:
 index, portfolio = convex_pool(
     assets,
     nb_iters_first=10,
     nb_iters_second=20,
-    stock_ratio=0.52,
+    stock_ratio=0.95,#Best one found yet (2.558995921594 of sharpe, and is valid)
     learning_rate=1
 )
 
-#utils.value_describe(assets, portfolio)
+utils.value_describe(assets, portfolio)
 print(utils.value_sharpe(assets, portfolio))
 print(utils.value_portfolio_is_valid(assets, portfolio))
 utils.push_value_portfolio(assets, portfolio * 10000)
