@@ -24,7 +24,7 @@ with open("dataset/sharpe.csv", "w", newline='') as file:
             ratio=[{}],
             asset={},
             start_date=2013-06-14,
-            end_date=2019-05-31,
+            end_date=2019-04-18,
             frequency=null
         }}""".format(ratio, ids))
 
