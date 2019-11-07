@@ -28,8 +28,8 @@ with open("dataset/correlation.csv", "w") as file:
                 ratio=[{}],
                 asset={},
                 benchmark={},
-                startDate=2013-06-14,
-                endDate=2019-05-31,
+                start_date=2013-06-14,
+                end_date=2019-04-18,
                 frequency=null
             }}""".format(ratio, ids, current))
 
