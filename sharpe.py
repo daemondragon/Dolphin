@@ -3,9 +3,6 @@ import pandas as pd
 import csv
 import os
 
-# Get the volatility of all pair of assets.
-
-
 # To prevent pushing the values by mistakes on a public repo
 base_url = os.environ["JUMP_BASE_URL"]
 auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
@@ -26,11 +23,12 @@ with open("dataset/sharpe.csv", "w", newline='') as file:
         data="""{{
             ratio=[{}],
             asset={},
-            benchmark={},
             start_date=2013-06-14,
             end_date=2019-04-18,
             frequency=null
-        }}""".format(ratio, ids, ids[0]))
+        }}""".format(ratio, ids))
+
     content = reponse.json()
     for _id in ids:
-        writer.writerow([_id] + [content[str(_id)][str(ratio)]["value"].replace(",", ".") ])
+        value = content[str(_id)][str(ratio)]["value"].replace(",", ".")
+        writer.writerow([_id, value])

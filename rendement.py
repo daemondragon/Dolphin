@@ -1,37 +1,41 @@
 import requests
-import json
+import pandas as pd
 import csv
 import os
-import pandas as pd
-URL = os.environ["JUMP_BASE_URL"]
-AUTH = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
 
-ids = sorted(pd.read_csv("assets.csv").dropna(subset=["value"])["id"].values.tolist())
+# To prevent pushing the values by mistakes on a public repo
+base_url = os.environ["JUMP_BASE_URL"]
+auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
 
-Rend = 13# Pearson correlation
+# Read all assets that have a value (all other are dropped)
+# and only keep their id (they will be directly refered with that)
+ids = sorted(pd.read_csv("dataset/assets.csv").dropna(subset=["value"])["id"].values.tolist())
 
-print("Rendement.csv")
-with open("Rendement.csv", "w") as file:
-    writer = csv.writer(file)
-    writer.writerow(["source"] + [str(_id) for _id in ids])
+ratio = 13
 
-    for current in ids:
-        payload={'_ratio':[Rend],'_asset':[current],'_becnh':"null",
-                 '_startDate':"2013-06-14",
-                 '_endDate':"2019-05-31",
-                 '_frequency':"null"}
+reponse = requests.post(
+    base_url + "/ratio/invoke",
+    auth=auth,
+    data="""{{
+        ratio=[{}],
+        asset={},
+        start_date=2013-06-14,
+        end_date=2019-04-18,
+        frequency=null
+    }}""".format(ratio, ids))
 
-        reponse = requests.post(
-            URL + "/ratio/invoke",
-            auth=AUTH,
-            data="""{{
-                ratio=[{}],
-                asset={},
-                benchmark={},
-                start_date=2013-06-14,
-                end_date=2019-04-18,
-                frequency=null
-            }}""".format(Rend, ids, current))
+content = reponse.json()
 
-        content = reponse.json()
-        writer.writerow([current] + [content[str(_id)][str(Rend)]["value"].replace(",", ".") for _id in ids])
+for column, convert_function in [
+    ("rendement", lambda x: str(float(x) / 100)),
+    ("rendement_percent", lambda x: x)
+]:
+    with open("dataset/{}.csv".format(column), "w", newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["id", column])
+
+        for _id in ids:
+            writer.writerow([
+                _id,
+                convert_function(content[str(_id)][str(ratio)]["value"].replace(",", "."))
+            ])

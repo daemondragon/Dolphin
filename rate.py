@@ -18,7 +18,7 @@ def correct_float(value):
 
 with open("dataset/euros_rate.csv", "w") as file:
     writer = csv.writer(file)
-    writer.writerow(["source", "rate"])
+    writer.writerow(["source", "destination", "rate"])
     for source in currencies:
 
         response = requests.get(get_url(source, destination_currency), auth=auth)

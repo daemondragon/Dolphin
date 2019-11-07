@@ -34,4 +34,8 @@ with open("dataset/correlation.csv", "w") as file:
             }}""".format(ratio, ids, current))
 
         content = reponse.json()
-        writer.writerow([current] + [content[str(_id)][str(ratio)]["value"].replace(",", ".") for _id in ids])
+        writer.writerow([current] + [
+            # The application doesn't return 1.0 for same id
+            1.0 if _id == current else content[str(_id)][str(ratio)]["value"].replace(",", ".") for _id in ids
+
+        ])

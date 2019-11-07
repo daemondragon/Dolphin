@@ -16,21 +16,31 @@ ids = sorted(pd.read_csv("dataset/assets.csv").dropna(subset=["value"])["id"].va
 
 ratio = 10
 
-with open("dataset/volatility.csv", "w", newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(["id","volatility"])
 
-    reponse = requests.post(
-        base_url + "/ratio/invoke",
-        auth=auth,
-        data="""{{
-            ratio=[{}],
-            asset={},
-            benchmark={},
-            start_date=2013-06-14,
-            end_date=2019-04-18,
-            frequency=null
-        }}""".format(ratio, ids, ids[0]))
-    content = reponse.json()
-    for _id in ids:
-        writer.writerow([_id] + [content[str(_id)][str(ratio)]["value"].replace(",", ".") ])
+reponse = requests.post(
+    base_url + "/ratio/invoke",
+    auth=auth,
+    data="""{{
+        ratio=[{}],
+        asset={},
+        start_date=2013-06-14,
+        end_date=2019-04-18,
+        frequency=null
+    }}""".format(ratio, ids))
+
+content = reponse.json()
+
+for column, convert_function in [
+    ("volatility", lambda x: str(float(x) / 100)),
+    ("volatility_percent", lambda x: x)
+]:
+    with open("dataset/{}.csv".format(column), "w", newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["id", column])
+
+
+        for _id in ids:
+            writer.writerow([
+                _id,
+                convert_function(content[str(_id)][str(ratio)]["value"].replace(",", "."))
+            ])
