@@ -27,7 +27,7 @@ def get_pool( val_ref = 1000000, size_pool=30, stock_nb= 20):
 
     for id in pool:
 
-        val = float(assets[assets.id == int(id)].iloc[0].iloc[0])
+        val = float(assets[assets.id == int(id)].iloc[0].iloc[3])
         portfolio[asset_id_to_index(full_assets,id)] = int((1/size_pool)*val_ref /val)
 
     return portfolio
