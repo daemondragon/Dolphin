@@ -129,6 +129,11 @@ def push_quantity_portfolio(assets, portfolio):
     """
     Expect a quantity portfolio, not a valued one.
     """
+
+    # Correctly convert the portfolio to the unit version
+    # so that the constraint on the portfolio is correct
+    portfolio = to_unit(portfolio)
+
     base_url = os.environ["JUMP_BASE_URL"]
     auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
 
@@ -158,6 +163,22 @@ def push_quantity_portfolio(assets, portfolio):
         response = requests.put(url, auth=auth, data=entity)
 
     return (response.status_code / 100) == 2 # 200-like response code
+
+def to_unit(portfolio):
+    """
+    Transform a portfolio of either value or quantity
+    into and unit equivalent by multiplying by 10 the portfolio
+    while the resulting result is still equivalent.
+    This can be done as there is no limit on the amount of assets that can
+    be returned.
+    """
+
+    previous_portfolio = portfolio
+    new_portfolio = previous_portfolio * 10
+    while not np.array_equal(np.round(new_portfolio), new_portfolio) and np.allclose(portfolio / portfolio.sum(), new_portfolio / new_portfolio.sum()):
+        previous_portfolio, new_portfolio = new_portfolio, new_portfolio * 10
+
+    return np.round(previous_portfolio).astype(int)
 
 def quantity_describe(assets, portfolio):
     return value_describe(assets, portfolio * assets["info"]["value"].values)
