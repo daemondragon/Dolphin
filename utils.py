@@ -203,15 +203,15 @@ def value_describe(assets, portfolio):
         )
         important_index = np.flip(important_index[np.argsort(portfolio[important_index])])
 
-        print("\nASSET: {} ({})".format(kind, len(important_index)))
+        print("\nASSET: {} {} ({:.2f}%)".format(len(important_index), kind, portfolio[important_index].sum() / portfolio.sum() * 100))
 
         for index in important_index:
             final_value = portfolio[index]
             value = assets["info"]["value"][index]
             quantity = final_value / value
 
-            print("- {} {} quantity {} * value {} = {}".format(
+            print("- {} {} quantity {} * value {:9.9f} = {:9.9f} ({:.5f}%)".format(
                 assets["info"]["id"][index],
                 nice_name(assets["info"]["name"][index], 20),
-                quantity, value, final_value
+                quantity, value, final_value, final_value / portfolio.sum() * 100
             ))
