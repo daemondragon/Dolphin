@@ -37,7 +37,7 @@ def invoke_ratio(asset_id):
 
 assets = utils.load_assets()
 
-for portfolio_id in [1822]:
+for portfolio_id in [1822, 2201]:
     url = base_url + "/portfolio/{}/dyn_amount_compo".format(portfolio_id)
     content = requests.get(url, auth=auth).json()
 
