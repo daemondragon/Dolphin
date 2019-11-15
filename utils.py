@@ -2,7 +2,15 @@ import pandas as pd
 import numpy as np
 import requests
 import math
+import enum
 import os
+
+# Global configuration
+base_url = os.environ["JUMP_BASE_URL"]
+auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
+
+portfolio_id = 1822
+portfolio_label = "EPITA_PTF_3"
 
 def load_assets(assets_path = "dataset/"):
     assets = pd.read_csv(assets_path + "assets.csv").dropna(subset=["value"])
@@ -89,7 +97,7 @@ def value_portfolio_is_valid(assets, portfolio):
         normalized_portfolio[stocks_index].sum() / normalized_portfolio.sum() >= 0.5
     ]
 
-    print(correct)
+    #print(correct)
     return all(correct)
 
 
@@ -134,12 +142,6 @@ def push_quantity_portfolio(assets, portfolio):
     # so that the constraint on the portfolio is correct
     portfolio = to_unit(portfolio)
 
-    base_url = os.environ["JUMP_BASE_URL"]
-    auth = (os.environ["JUMP_USER"], os.environ["JUMP_PWD"])
-
-    portfolio_id = 1822
-    portfolio_label = "EPITA_PTF_3"
-
     url = base_url + "/portfolio/{}/dyn_amount_compo".format(portfolio_id)
     entity="""{{
         "label":"EPITA_PTF_3",
@@ -179,6 +181,38 @@ def to_unit(portfolio):
         previous_portfolio, new_portfolio = new_portfolio, new_portfolio * 10
 
     return np.round(previous_portfolio).astype(int)
+
+@enum.unique
+class Ratio(enum.IntEnum):
+    SHARPE = 12
+    VOLATILITY = 10
+    RENDEMENT = 9
+
+
+def invoke_ratios(ratios: list = [Ratio.SHARPE]):
+
+    response = requests.post(
+        base_url + "/ratio/invoke",
+        auth=auth,
+        data="""{{
+            ratio={},
+            asset=[{}],
+            start_date=2013-06-14,
+            end_date=2019-04-18,
+            frequency=null
+        }}""".format([int(ratio) for ratio in ratios], portfolio_id)).json()
+
+    ratios = [
+        {
+            Ratio(int(ratio_id)):
+            {"double": lambda x: x, "percent": lambda x: x / 100 }[
+                response[str(portfolio_id)][ratio_id]["type"]
+            ](float(response[str(portfolio_id)][ratio_id]["value"].replace(",", ".")))
+        } for ratio_id in response[str(portfolio_id)]
+    ]
+
+    # Compact all the dictionnaries into one.
+    return {key: val for dic in ratios for key, val in dic.items()}
 
 def quantity_describe(assets, portfolio):
     return value_describe(assets, portfolio * assets["info"]["value"].values)

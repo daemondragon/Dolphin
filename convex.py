@@ -137,11 +137,17 @@ index, portfolio = convex_pool(
     assets,
     nb_iters_first=10,
     nb_iters_second=20,
-    stock_ratio=0.95,#Best one found yet (2.558995921594 of sharpe, and is valid)
+    stock_ratio=1.0,#Best one found yet (2.634313242669 of sharpe, and is valid)
     learning_rate=1
 )
 
-utils.value_describe(assets, portfolio)
-print(utils.value_sharpe(assets, portfolio))
-print(utils.value_portfolio_is_valid(assets, portfolio))
-utils.push_value_portfolio(assets, portfolio * 10000)
+utils.push_value_portfolio(assets, portfolio)
+
+print("{} (local: {} | is_valid: {}): {}".format(
+    ratio,
+    utils.value_sharpe(assets, portfolio),
+    utils.value_portfolio_is_valid(assets, portfolio),
+    utils.invoke_ratios([utils.Ratio.SHARPE])
+))
+
+#utils.value_describe(assets, portfolio)
