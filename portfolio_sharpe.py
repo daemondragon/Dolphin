@@ -26,7 +26,7 @@ for portfolio_id in [1822, 2201]:
         content["label"],
         utils.quantity_sharpe(assets, portfolio),
         utils.quantity_portfolio_is_valid(assets, portfolio),
-        utils.invoke_ratios([utils.Ratio.SHARPE, utils.Ratio.RENDEMENT, utils.Ratio.VOLATILITY])
+        utils.invoke_ratios([utils.Ratio.SHARPE, utils.Ratio.RENDEMENT, utils.Ratio.VOLATILITY], portfolio_id=portfolio_id)
     ))
 
     utils.quantity_describe(assets, portfolio)

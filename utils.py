@@ -189,7 +189,7 @@ class Ratio(enum.IntEnum):
     RENDEMENT = 9
 
 
-def invoke_ratios(ratios: list = [Ratio.SHARPE]):
+def invoke_ratios(ratios: list = [Ratio.SHARPE], portfolio_id=portfolio_id):
 
     response = requests.post(
         base_url + "/ratio/invoke",
